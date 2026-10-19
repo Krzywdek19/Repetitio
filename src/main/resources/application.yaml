@@ -13,6 +13,13 @@ spring:
     deserialization:
       fail-on-unknown-properties: true
 
+app:
+  rate-limit:
+    login:
+      capacity: 5
+      refill-tokens: 5
+      refill-period: 1m
+
 security:
   jwt:
     issuer: ${JWT_ISSUER:repetitio}

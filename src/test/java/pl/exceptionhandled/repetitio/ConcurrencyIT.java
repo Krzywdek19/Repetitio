@@ -15,7 +15,6 @@ import pl.exceptionhandled.repetitio.study.domain.Rating;
 import pl.exceptionhandled.repetitio.shared.error.ApiException;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 
 class ConcurrencyIT extends PostgresIntegrationTest {
     @Autowired AuthService auth;
@@ -63,7 +62,7 @@ class ConcurrencyIT extends PostgresIntegrationTest {
     @Test void scheduleFailureRollsBackCardCreation() {
         var owner = auth.register(UUID.randomUUID() + "@example.com", "concurrent-test-password").id();
         doThrow(new IllegalStateException("Simulated schedule failure")).when(schedules).insert(any());
-        assertThatThrownBy(() -> flashcards.create(owner, null, "Question", "Answer")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> flashcards.create(owner, null, "Question", "Answer")).rootCause().isInstanceOf(IllegalStateException.class);
         assertThat(jdbc.queryForObject("select count(*) from flashcard where owner_id = ?", Long.class, owner)).isZero();
     }
 
