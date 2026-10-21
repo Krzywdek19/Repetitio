@@ -8,7 +8,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "app.rate-limit.login.capacity=1000"
+)
 public abstract class PostgresIntegrationTest {
     static final PostgreSQLContainer DATABASE = new PostgreSQLContainer("postgres:17-alpine");
     static final KeyPair KEYS = keys();
