@@ -4,10 +4,9 @@ import io.github.bucket4j.TimeMeter;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,49 +44,51 @@ public class AuthRateLimiterTest {
     }
 
     @Test
-    void shouldAllowOnlyFiveConcurrentRequestsForSameClient() throws InterruptedException{
+    void shouldAllowOnlyFiveConcurrentRequestsForSameClient() throws Exception {
         String clientKey = "client1";
 
-        CountDownLatch latch = new CountDownLatch(100);
+        CountDownLatch ready = new CountDownLatch(100);
         CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch end = new CountDownLatch(100);
-        AtomicInteger allowed = new AtomicInteger(0);
-        AtomicInteger rejected = new AtomicInteger(0);
+
+        AtomicInteger allowed = new AtomicInteger();
+        AtomicInteger rejected = new AtomicInteger();
 
         Runnable task = () -> {
-            latch.countDown();
+            ready.countDown();
 
             try {
                 start.await();
-                if(limiter.allow(clientKey)) {
+
+                if (limiter.allow(clientKey)) {
                     allowed.incrementAndGet();
-                }else {
+                } else {
                     rejected.incrementAndGet();
                 }
-            }catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Worker interrupted", e);
-            } finally {
-                end.countDown();
             }
         };
 
-        try (ExecutorService executorService = Executors.newFixedThreadPool(100)) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(100)) {
+            List<Future<?>> futures = new ArrayList<>();
 
-        for (int i = 0; i < 100; i++) {
-            executorService.submit(task);
-        }
+            for (int i = 0; i < 100; i++) {
+                futures.add(executor.submit(task));
+            }
 
-        try {
-            assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
-        } finally {
-            start.countDown();
-        }
+            try {
+                assertTrue(ready.await(15, TimeUnit.SECONDS));
+            } finally {
+                start.countDown();
+            }
 
-        assertThat(end.await(15, TimeUnit.SECONDS)).isTrue();
-        assertEquals(5, allowed.get());
-        assertEquals(95, rejected.get());
+            for (Future<?> future : futures) {
+                future.get(5, TimeUnit.SECONDS);
+            }
 
+            assertEquals(5, allowed.get());
+            assertEquals(95, rejected.get());
         }
     }
 

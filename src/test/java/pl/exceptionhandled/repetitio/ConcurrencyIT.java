@@ -1,13 +1,17 @@
 package pl.exceptionhandled.repetitio;
 
+import java.time.Clock;
 import java.util.*;
 import java.util.concurrent.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import pl.exceptionhandled.repetitio.auth.application.AuthService;
+import pl.exceptionhandled.repetitio.notes.application.NoteRepository;
+import pl.exceptionhandled.repetitio.testing.TestDataFactory;
 import pl.exceptionhandled.repetitio.user.application.UserRepository;
 import pl.exceptionhandled.repetitio.flashcards.application.FlashcardService;
 import pl.exceptionhandled.repetitio.study.application.*;
@@ -23,6 +27,15 @@ class ConcurrencyIT extends PostgresIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @MockitoSpyBean UserRepository users;
     @MockitoSpyBean ScheduleRepository schedules;
+    @Autowired NoteRepository notes;
+    @Autowired Clock clock;
+
+    private TestDataFactory testData;
+
+    @BeforeEach
+    void setUp() {
+        testData = new TestDataFactory(auth, notes, clock);
+    }
 
     @Test void concurrentRegistrationHasExactlyOneWinnerAfterBothExistenceChecksPass() throws Exception {
         var email = UUID.randomUUID() + "@example.com";
@@ -43,7 +56,7 @@ class ConcurrencyIT extends PostgresIntegrationTest {
     }
 
     @Test void concurrentReviewsWithSameVersionHaveExactlyOneWinner() throws Exception {
-        var owner = auth.register(UUID.randomUUID() + "@example.com", "concurrent-test-password").id();
+        var owner = testData.createOwner();
         var card = flashcards.create(owner, null, "Question", "Answer");
         var barrier = new CyclicBarrier(2);
         doAnswer(invocation -> {
@@ -60,7 +73,7 @@ class ConcurrencyIT extends PostgresIntegrationTest {
     }
 
     @Test void scheduleFailureRollsBackCardCreation() {
-        var owner = auth.register(UUID.randomUUID() + "@example.com", "concurrent-test-password").id();
+        var owner = testData.createOwner();
         doThrow(new IllegalStateException("Simulated schedule failure")).when(schedules).insert(any());
         assertThatThrownBy(() -> flashcards.create(owner, null, "Question", "Answer")).rootCause().isInstanceOf(IllegalStateException.class);
         assertThat(jdbc.queryForObject("select count(*) from flashcard where owner_id = ?", Long.class, owner)).isZero();
