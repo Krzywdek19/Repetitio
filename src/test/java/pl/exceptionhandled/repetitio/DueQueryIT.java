@@ -1,14 +1,17 @@
 package pl.exceptionhandled.repetitio;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.sql.Timestamp;
-import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pl.exceptionhandled.repetitio.auth.application.AuthService;
 import pl.exceptionhandled.repetitio.flashcards.application.FlashcardService;
 import pl.exceptionhandled.repetitio.study.application.DueFlashcardQuery;
+import pl.exceptionhandled.repetitio.notes.application.NoteRepository;
+import pl.exceptionhandled.repetitio.testing.TestDataFactory;
 import static org.assertj.core.api.Assertions.*;
 
 class DueQueryIT extends PostgresIntegrationTest {
@@ -16,10 +19,19 @@ class DueQueryIT extends PostgresIntegrationTest {
     @Autowired FlashcardService flashcards;
     @Autowired DueFlashcardQuery query;
     @Autowired JdbcTemplate jdbc;
+    @Autowired NoteRepository notes;
+    @Autowired Clock clock;
+
+    private TestDataFactory testData;
+
+    @BeforeEach
+    void setUp() {
+        testData = new TestDataFactory(auth, notes, clock);
+    }
 
     @Test void includesExactDueTimeAndPaginatesAfterOwnerFiltering() {
-        var owner = auth.register(UUID.randomUUID() + "@example.com", "query-test-password").id();
-        var stranger = auth.register(UUID.randomUUID() + "@example.com", "query-test-password").id();
+        var owner = testData.createOwner();
+        var stranger = testData.createOwner();
         var a = flashcards.create(owner, null, "a", "a");
         var b = flashcards.create(owner, null, "b", "b");
         var c = flashcards.create(owner, null, "c", "c");

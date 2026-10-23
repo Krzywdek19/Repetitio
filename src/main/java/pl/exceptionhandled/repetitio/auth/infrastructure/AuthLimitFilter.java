@@ -25,7 +25,7 @@ public class AuthLimitFilter extends OncePerRequestFilter {
 
         if(!limiter.allow(clientKey)) {
             response.setStatus(429);
-            response.setContentType("application/problem-json");
+            response.setContentType("application/problem+json");
             response.getWriter().write("""
                     {"type":"about:blank",
                     "title":"Too Many Requests",

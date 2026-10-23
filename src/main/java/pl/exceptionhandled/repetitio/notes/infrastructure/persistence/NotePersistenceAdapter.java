@@ -17,6 +17,41 @@ class NotePersistenceAdapter implements NoteRepository {
                 .setParameter("owner", ownerId).setFirstResult(offset).setMaxResults(limit).getResultList()
                 .stream().map(NoteEntity::data).toList();
     }
+
+    @Override
+    public List<NoteData> searchOwned(
+            UUID ownerId,
+            String query,
+            int offset,
+            int limit
+    ) {
+        var escaped = query
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+
+        var pattern = "%" + escaped.toLowerCase(Locale.ROOT) + "%";
+
+        return entityManager.createQuery("""
+            SELECT n
+            FROM NoteEntity n
+            WHERE n.ownerId = :ownerId
+              AND (
+                  LOWER(n.title) LIKE :pattern ESCAPE '!'
+                  OR LOWER(n.content) LIKE :pattern ESCAPE '!'
+              )
+            ORDER BY n.createdAt DESC, n.id
+            """, NoteEntity.class)
+                .setParameter("ownerId", ownerId)
+                .setParameter("pattern", pattern)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList()
+                .stream()
+                .map(NoteEntity::data)
+                .toList();
+    }
+
     public void deleteOwned(UUID id, UUID ownerId) { repository.deleteOwned(id, ownerId); }
 }
 
