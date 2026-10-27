@@ -14,3 +14,9 @@ spring:
 
   flyway:
     enabled: true
+
+app:
+  jwt:
+    issuer: repetitio
+    ttl: 30m
+    secret-base64: ${JWT_SECRET_BASE64}
