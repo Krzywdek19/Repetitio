@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: repetitio-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/repetitio
+    username: repetitio
+    password: ${DB_PASSWORD:local_dev_password}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
