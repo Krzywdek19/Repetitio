@@ -4,6 +4,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
+import io.github.bucket4j.TimeMeter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pl.exceptionhandled.repetitio.auth.config.RateLimitProperties;
 
@@ -12,12 +14,21 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class AuthRateLimiter {
-
+    private final TimeMeter timeMeter;
     private final RateLimitProperties properties;
     private final Cache<String, Bucket> buckets;
 
+    @Autowired
     public AuthRateLimiter(RateLimitProperties properties) {
+        this(properties, TimeMeter.SYSTEM_MILLISECONDS);
+    }
+
+    AuthRateLimiter(
+            RateLimitProperties properties,
+            TimeMeter timeMeter
+    ) {
         this.properties = properties;
+        this.timeMeter = timeMeter;
 
         this.buckets = Caffeine.newBuilder()
                 .maximumSize(100_000)
@@ -84,6 +95,7 @@ public class AuthRateLimiter {
                                     policy.refillTokens(),
                                     policy.refillPeriod()
                             ))
+                    .withCustomTimePrecision(timeMeter)
                     .build();
         }
 
@@ -94,6 +106,7 @@ public class AuthRateLimiter {
                                 policy.refillTokens(),
                                 policy.refillPeriod()
                         ))
+                .withCustomTimePrecision(timeMeter)
                 .build();
     }
 
