@@ -15,8 +15,21 @@ spring:
   flyway:
     enabled: true
 
+
 app:
   jwt:
     issuer: repetitio
     ttl: 30m
     secret-base64: ${JWT_SECRET_BASE64}
+
+  auth:
+    rate-limit:
+      login:
+        capacity: 5
+        refill-tokens: 1
+        refill-period: 12s
+
+      register:
+        capacity: 5
+        refill-tokens: 5
+        refill-period: 1m
