@@ -1,7 +1,9 @@
 package pl.exceptionhandled.repetitio.auth.domain.password;
 
+import org.springframework.stereotype.Component;
 import pl.exceptionhandled.repetitio.auth.domain.exception.WeakPasswordException;
 
+@Component
 public final class PasswordPolicy {
 
     private static final int MIN_LENGTH = 15;

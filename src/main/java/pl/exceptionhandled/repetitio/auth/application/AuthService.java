@@ -23,7 +23,8 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenService jwtTokenService;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordPolicy passwordPolicy = new PasswordPolicy();
+    private final LoginCredentialVerifier credentialVerifier;
+    private final PasswordPolicy passwordPolicy;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -53,20 +54,16 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
 
-        String email = request.email()
+        var email = request.email()
                 .strip()
                 .toLowerCase(Locale.ROOT);
 
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(InvalidCredentialsException::new);
+        var user = userRepository.findByEmailIgnoreCase(email);
 
-        if (!passwordEncoder.matches(
-                request.password(),
-                user.getPasswordHash()
-        )) {
+        if (!credentialVerifier.isValid(user, request.password())) {
             throw new InvalidCredentialsException();
         }
 
-        return jwtTokenService.generate(user);
+        return jwtTokenService.generate(user.orElseThrow());
     }
 }
