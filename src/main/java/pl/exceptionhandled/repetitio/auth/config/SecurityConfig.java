@@ -1,5 +1,6 @@
 package pl.exceptionhandled.repetitio.auth.config;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import pl.exceptionhandled.repetitio.shared.api.ApiPaths;
 
 @Configuration
+@EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
