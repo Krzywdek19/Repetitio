@@ -9,6 +9,7 @@ import pl.exceptionhandled.repetitio.auth.api.LoginResponse;
 import pl.exceptionhandled.repetitio.auth.config.JwtProperties;
 import pl.exceptionhandled.repetitio.users.domain.User;
 
+import java.time.Clock;
 import java.time.Instant;
 
 @Service
@@ -17,10 +18,11 @@ public class JwtTokenService {
 
     private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
+    private final Clock clock;
 
-    public LoginResponse generate(User user) {
+    public LoginResponse generate(User user, String refreshToken) {
 
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         Instant expiresAt = now.plus(jwtProperties.ttl());
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -40,6 +42,7 @@ public class JwtTokenService {
 
         return new LoginResponse(
                 token,
+                refreshToken,
                 "Bearer",
                 jwtProperties.ttl().toSeconds()
         );

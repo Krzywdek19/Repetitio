@@ -11,7 +11,9 @@ public final class ApiPaths {
 
     public static final String REGISTER = "/register";
     public static final String LOGIN = "/login";
+    public static final String REFRESH = "/refresh";
 
     public static final String AUTH_REGISTER = AUTH + REGISTER;
     public static final String AUTH_LOGIN = AUTH + LOGIN;
+    public static final String AUTH_REFRESH = AUTH + REFRESH;
 }

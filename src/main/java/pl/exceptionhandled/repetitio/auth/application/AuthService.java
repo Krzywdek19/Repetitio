@@ -4,12 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pl.exceptionhandled.repetitio.auth.api.LoginRequest;
-import pl.exceptionhandled.repetitio.auth.api.LoginResponse;
-import pl.exceptionhandled.repetitio.auth.api.RegisterRequest;
-import pl.exceptionhandled.repetitio.auth.api.RegisterResponse;
+import pl.exceptionhandled.repetitio.auth.api.*;
 import pl.exceptionhandled.repetitio.auth.domain.exception.EmailAlreadyRegisteredException;
 import pl.exceptionhandled.repetitio.auth.domain.exception.InvalidCredentialsException;
+import pl.exceptionhandled.repetitio.auth.domain.exception.InvalidRefreshTokenException;
 import pl.exceptionhandled.repetitio.auth.domain.password.PasswordPolicy;
 import pl.exceptionhandled.repetitio.auth.infrastructure.security.JwtTokenService;
 import pl.exceptionhandled.repetitio.users.domain.User;
@@ -22,6 +20,7 @@ import java.util.Locale;
 public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenService jwtTokenService;
+    private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final LoginCredentialVerifier credentialVerifier;
     private final PasswordPolicy passwordPolicy;
@@ -51,7 +50,7 @@ public class AuthService {
         );
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest request) {
 
         var email = request.email()
@@ -64,6 +63,26 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        return jwtTokenService.generate(user.orElseThrow());
+        var authenticatedUser = user.orElseThrow();
+
+        var refreshToken = refreshTokenService.issue(authenticatedUser);
+
+        return jwtTokenService.generate(authenticatedUser, refreshToken);
+    }
+
+    public LoginResponse refresh(RefreshRequest request) {
+
+        RotationResult result = refreshTokenService.rotate(
+                request.refreshToken()
+        );
+
+        if (result instanceof RotationResult.Success(User user, String refreshToken)) {
+            return jwtTokenService.generate(
+                    user,
+                    refreshToken
+            );
+        }
+
+        throw new InvalidRefreshTokenException();
     }
 }
